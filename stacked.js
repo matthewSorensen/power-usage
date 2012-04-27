@@ -40,6 +40,7 @@ function buildChart(selector,file,dim){
 	rect = sector.selectAll("rect")
 	    .data(Object)
 	    .enter().append("svg:rect")
+	    .classed("box",true)
 	    .attr("x", function(d) { return scale.country(d.x); })
 	    .attr("y",function(d){
 		return dim.height - (dim.margin + scale.energy(d.y0) + scale.energy(d.y));
@@ -73,9 +74,9 @@ function buildChart(selector,file,dim){
 	    .attr("class","axis")
 	    .call(axis);
 
-	var button = svg.selectAll("rect.button")
-	    .data(data.sectors)
-	    .enter();
+	var button = svg.selectAll("g.button")
+	    .data(data.sectors).enter(),
+	xoffset = dim.margin + 50;
 	
 	button.append("svg:rect")
 	    .attr("class","button")
@@ -84,10 +85,9 @@ function buildChart(selector,file,dim){
 	    .attr("width",100)
 	    .attr("height",dim.button)
 	    .style("stroke", function(_,i){return  d3.rgb(scale.sector(i)).darker();})
-	    .attr("fill",function(_,i){return scale.sector(i);});
-
-	var xoffset = dim.margin + 52.5;
-
+	    .attr("fill",function(_,i){return scale.sector(i);})
+	    .on("mousedown",animate(scale.energy,dim));
+	
 	button.append("svg:text")
 	    .attr("x", function(_,i){
 		return xoffset + 105*i;
@@ -100,12 +100,38 @@ function buildChart(selector,file,dim){
     });
 }
 
+// figure out how to select the parent element. Then...?
+// Give them a class...?... that allows computation of two conflicting selectors?
+// How do we save old things?
+function animate(scale,dim){
+    return function(){
+	var type = "";
+	d3.select(this).each(function(d,_){type = d});
+	
+	d3.selectAll(".box")
+	    .transition()
+	    .duration(750)
+	    .attr("transform",function(d,i){
+		return translate(0, d.sector == type?  scale(d.y0):(dim.margin + 100 +scale(d.y + d.y0)));
+
+	    });
+    };
+}
+
+function unanimate(){
+    d3.selectAll(".box")
+	.transition()
+	.duration(500)
+	.attr("transform","");
+}
+
+
 function defaultDim(dim){
 
     var height = dim.height || 500,
     width = dim.width || 960,
     margin = dim.margin || 20,
-    button = 20,
+    button = 15,
     right = 50;
     return {
 	height: height,
@@ -138,7 +164,7 @@ function simplifyData(data){
 function transposeToLayout(data){
     return d3.layout.stack()(data.sectors.map(function(type){
 	return data.countries.map(function(country){
-	    return {x: country, y: data.bars[country][type] || 0};
+	    return {x: country, y: data.bars[country][type] || 0, sector:type};
 	});}));}
 
 function scales(dim,data,layout){
