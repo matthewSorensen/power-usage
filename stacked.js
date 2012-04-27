@@ -36,16 +36,12 @@ function buildChart(selector,file,dim){
 	    .attr("class", "sector")
 	    .style("stroke", function(_,i){return  d3.rgb(scale.sector(i)).darker();})
 	    .style("fill", function(d, i) { return scale.sector(i); }),
-
+	
 	rect = sector.selectAll("rect")
 	    .data(Object)
 	    .enter().append("svg:rect")
 	    .classed("box",true)
 	    .attr("x", function(d) { return scale.country(d.x); })
-	    .attr("y",function(d){
-		return dim.height - (dim.margin + scale.energy['all'](d.y0) + scale.energy['all'](d.y));
-	    })
-	    .attr("height", function(d){return scale.energy['all'](d.y);})
 	    .attr("width", scale.country.rangeBand()),
 	
 	label = svg.selectAll("text")
@@ -57,9 +53,7 @@ function buildChart(selector,file,dim){
 	    .attr("dy", ".71em")
 	    .text(function(d){return d;}),
 
-	newScale = d3.scale.linear()
-	    .domain([0,data.max])
-	    .range([dim.height-dim.margin,dim.margin+dim.button]),
+	newScale = d3.scale.linear().range([dim.height - dim.margin, dim.margin+dim.button]),
 
 	axis = d3.svg.axis()
 	    .scale(newScale)
@@ -74,6 +68,8 @@ function buildChart(selector,file,dim){
 	    .attr("class","axis")
 	    .call(axis);
 
+	redraw(dim,scale.energy,axis,"all");
+	
 	var button = svg.selectAll("g.button")
 	    .data(data.sectors.concat(["all"]))
 	    .enter()
@@ -82,7 +78,11 @@ function buildChart(selector,file,dim){
 	    .style("cursor","hand"),
 	xoffset = dim.margin + 50;
 	
-	button.on("mousedown",animate(scale.energy['all'],dim));
+	button.on("mousedown",function(){
+	    var type = "all";
+	    d3.select(this).each(function(d,_){type = d});
+	    redraw(dim,scale.energy,axis,type);
+	});
 
 	button.append("svg:rect")
 	    .attr("x",function(d,i){return dim.margin+105*i})
@@ -104,45 +104,40 @@ function buildChart(selector,file,dim){
     });
 }
 
-// * rescale the axis (hard - build a second set of scales for each...?)
-function animate(scale,dim){
-    return function(){
-	var type = "";
-	d3.select(this).each(function(d,_){type = d});
-	
-	if (type == "all") return unanimate();
-
-	d3.selectAll(".button")
-	    .transition()
-	    .duration(750)
-	    .style("opacity",function(d,_){
-		return (d==type || d=="all")? 1 : 0.25;
-	    });
-
-	d3.selectAll(".box")
-	    .transition()
-	    .duration(750)
-	    .attr("transform",function(d,i){
-		return translate(0, d.sector == type?  scale(d.y0):(dim.margin + 100 +scale(d.y + d.y0)));
-
-	    });
-    };
-}
-
-function unanimate(){
-    d3.selectAll(".box")
-	.transition()
-	.duration(500)
-	.attr("transform","");
+function redraw(dim,scale,axis,type){
+    scale = scale[type];
+    
     d3.selectAll(".button")
 	.transition()
-	.duration(500)
-	.style("opacity",1);
+	.duration(750)
+	.style("opacity",function(d,_){
+	    return (d==type || d=="all")? 1 : (type=="all" ? 1:0.25);
+	});
+    d3.selectAll(".box")
+	.transition()
+	.duration(750)
+	.attr("y",function(d){
+	    if(type == "all"){
+		return dim.height - (dim.margin + scale(d.y0) + scale(d.y))
+	    }else if(d.sector == type){
+		// If this is of the correct type
+		return dim.height - dim.margin - scale(d.y);
+	    }else{
+		return dim.height * 2;
+	    }
+	})
+	.attr("height", function(d){
+	    return (type == "all" || d.sector == type)? scale(d.y):0;
+	});
+
+    axis.scale(axis.scale().domain(scale.domain()));
+    
+    d3.select(".axis")
+	.transition()
+	.call(axis);
 }
 
-
 function defaultDim(dim){
-
     var height = dim.height || 500,
     width = dim.width || 960,
     margin = dim.margin || 20,
