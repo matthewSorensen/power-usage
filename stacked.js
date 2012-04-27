@@ -18,8 +18,6 @@ d3.json = function(_,call){
 	    "China":"http://en.wikipedia.org/wiki/Electricity_generation"
 	}});};
 
-var foo = {};
-
 function buildChart(selector,file,dim){
     dim = defaultDim(dim);
     var svg = d3.select(selector).append("svg:svg")
@@ -39,19 +37,14 @@ function buildChart(selector,file,dim){
 	    .style("stroke", function(_,i){return  d3.rgb(scale.sector(i)).darker();})
 	    .style("fill", function(d, i) { return scale.sector(i); }),
 
-	yscale = d3.scale.linear()
-	    .domain([0,4556])
-	    .range([0,430]),
-
 	rect = sector.selectAll("rect")
 	    .data(Object)
 	    .enter().append("svg:rect")
 	    .attr("x", function(d) { return scale.country(d.x); })
 	    .attr("y",function(d){
-		var baseline = yscale(d.y0);
-		return dim.height - dim.margin - (yscale(d.y0) + yscale(d.y));
+		return dim.height - (dim.margin + scale.energy(d.y0) + scale.energy(d.y));
 	    })
-	    .attr("height", function(d){return yscale(d.y);})
+	    .attr("height", function(d){return scale.energy(d.y);})
 	    .attr("width", scale.country.rangeBand()),
 	
 	label = svg.selectAll("text")
@@ -82,8 +75,9 @@ function buildChart(selector,file,dim){
 
 	var button = svg.selectAll("rect.button")
 	    .data(data.sectors)
-	    .enter()
-	    .append("svg:rect")
+	    .enter();
+	
+	button.append("svg:rect")
 	    .attr("class","button")
 	    .attr("x",function(d,i){return dim.margin+105*i})
 	    .attr("y",0.5*dim.margin)
@@ -92,23 +86,35 @@ function buildChart(selector,file,dim){
 	    .style("stroke", function(_,i){return  d3.rgb(scale.sector(i)).darker();})
 	    .attr("fill",function(_,i){return scale.sector(i);});
 
+	var xoffset = dim.margin + 52.5;
+
+	button.append("svg:text")
+	    .attr("x", function(_,i){
+		return xoffset + 105*i;
+	    })
+	    .attr("y", 0.5*dim.margin)
+	    .attr("text-anchor", "middle")
+	    .attr("dy", 0.5*dim.button+2.5)
+	    .style("fill",function(_,i){return contrast(scale.sector(i),3);})
+	    .text(function(d){return d;});
     });
 }
 
 function defaultDim(dim){
 
     var height = dim.height || 500,
+    width = dim.width || 960,
     margin = dim.margin || 20,
     button = 20,
-    chartHeight = height - 2*margin - button;
-
+    right = 50;
     return {
 	height: height,
-	width: dim.width || 960,
+	width: width,
 	margin: margin,
-	right: 50,
+	right: right,
 	button: button,
-	chartHeight: chartHeight
+	chartHeight:  height - 2*margin - button,
+	chartWidth:   width - 2*margin - right
     };}
 
 function simplifyData(data){
@@ -138,11 +144,11 @@ function transposeToLayout(data){
 function scales(dim,data,layout){
     return {
 	country:  d3.scale.ordinal()
-	    .rangeBands([0, dim.width - 2*dim.margin - dim.right],0.1)
+	    .rangeBands([0, dim.chartWidth],0.1)
 	    .domain(layout[0].map(function(d) { return d.x; })),
 	energy: d3.scale.linear()
-	    .range([0,dim.height-2*dim.marign-dim.button])
-	    .domain([0,data.max]),
+	    .domain([0,data.max])
+	    .range([0,dim.chartHeight]),
 	// This is slightly poor - we need to match the colorbrewer's size to sector length.
 	sector: d3.scale.ordinal().domain(data.sectors).range(colorbrewer.Blues[9])
     };}
@@ -151,11 +157,12 @@ function translate(x,y){
     return "translate(" + x + "," + y + ")";
 }
 
+function contrast(c,f){
+    var hsl = d3.hsl(c);
+    return (hsl.l < 0.5)? (hsl.brighter(f)): (hsl.darker(f));
+}
 
 
 buildChart("body","",{});
-
-
-
 
 
