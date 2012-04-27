@@ -6,7 +6,8 @@ d3.json = function(_,call){
 	"data" : {
 	    "USA": {"wind": 400, "hydro": 23, "nuclear": 231, "coal": 21},
 	    "Morocco": {"wind": 40, "hydro": 23, "nuclear": 1, "coal": 2},
-	    "China": {"wind": 4100, "hydro": 213, "nuclear": 231, "coal": 12}
+	    "China": {"wind": 4100, "hydro": 213, "nuclear": 231, "coal": 12},
+	    "Peru": {"hydro":1000}
 	},
 	"sources":{
 	    "USA": "http://en.wikipedia.org/wiki/Electricity_generation",
@@ -18,9 +19,9 @@ function buildChart(selector,file,dim){
     dim = defaultDim(dim);
     var svg = d3.select(selector).append("svg:svg")
 	.attr("width", dim.width)
-	.attr("height", dim.hight)
+	.attr("height", dim.height)
 	.append("svg:g")
-	.attr("transform", "translate(" + dim.left + "," + (dim.hight - dim.top) + ")");
+	.attr("transform", translate(dim.margin, dim.height - dim.margin));
 
     d3.json(file, function(dat) {
 
@@ -51,34 +52,45 @@ function buildChart(selector,file,dim){
 	    .attr("dy", ".71em")
 	    .text(function(d){return d;}),
 
-	rule = svg.selectAll("g.rule")
-	    .data(scale.energy.ticks(5))
-	    .enter().append("svg:g")
-	    .attr("class", "rule")
-	    .attr("transform", function(d) { return "translate(0," + -(scale.energy(d)) + ")"; });
-	
-	rule.append("svg:line")
-	    .attr("x2", dim.width - dim.right - dim.left)
-	    .style("stroke", function(d) { return d ? "#fff" : "#000"; })
-	    .style("stroke-opacity", function(d) { return d ? .7 : null; });
-	
-	rule.append("svg:text")
-	    .attr("x", dim.width - dim.right - dim.left + 6)
-	    .attr("dy", ".35em")
-	.text(d3.format(",d"));
+	newScale = scale.energy.copy(),
+	newRange = newScale.range(),
+
+	axis = d3.svg.axis()
+	    .scale(newScale.range([newRange[1],newRange[0]]))
+	    .ticks(5)
+	    .orient("right")
+	    .tickFormat(function(n){
+		return d3.format(" e")(n) + ' ' + dat.units;
+	    });
+
+	svg.append("g")
+	    .attr("transform",translate(dim.width - 2*dim.margin - dim.right,-dim.height + 2*dim.margin))
+	    .attr("class","axis")
+	    .call(axis);
+
+	var button = svg.selectAll("rect.button")
+	    .data(data.sectors)
+	    .enter()
+	    .append("svg:rect")
+	    .attr("class","button")
+	    .attr("x",function(d,i){return dim.margin+105*i})
+	    .attr("y",2*dim.margin - dim.height)
+	    .attr("rx",5)
+	    .attr("width",100)
+	    .attr("height",30)
+	    .attr("fill",function(_,i){return scale.sector(i);});
+
     });
 }
 
 function defaultDim(dim){
     return {
-	hight: dim.hight || 500,
+	height: dim.height || 500,
 	width: dim.width || 960,
-	top:   dim.top   || 20,
-	bottom: dim.bottom || 30,
-	right: dim.right || 50,
-	left:  dim.left  || 20
-    };
-}
+	margin: dim.margin || 20,
+	right: 50
+
+    };}
 
 function simplifyData(data){
     data = data.data;
@@ -96,30 +108,35 @@ function simplifyData(data){
 	max: max,
 	sectors: d3.keys(sectors),
 	bars: data
-    };
-}
+    };}
 
 function transposeToLayout(data){
     return d3.layout.stack()(data.sectors.map(function(type){
 	return data.countries.map(function(country){
 	    return {x: country, y: data.bars[country][type] || 0};
-	});
-    }));
-}
+	});}));}
 
 function scales(dim,data,layout){
     return {
 	country:  d3.scale.ordinal()
-	    .rangeBands([0, dim.width - dim.right - dim.left])
+	    .rangeBands([0, dim.width - 2*dim.margin - dim.right],0.1)
 	    .domain(layout[0].map(function(d) { return d.x; })),
 	energy: d3.scale.linear()
-	    .range([0, dim.hight - dim.top - dim.bottom])
-	    .domain([0, d3.max(layout[layout.length - 1], function(d) { return d.y0 + d.y; })]),
+	    .range([0, dim.height - 2*dim.margin])
+	    .domain([0,d3.max(layout[layout.length - 1], function(d) { return d.y0 + d.y; })]),
 	// This is slightly poor - we need to match the colorbrewer's size to sector length.
 	sector: d3.scale.ordinal().domain(data.sectors).range(colorbrewer.GnBu[9])
-    };
+    };}
 
+function translate(x,y){
+    return "translate(" + x + "," + y + ")";
 }
 
 
+
 buildChart("body","",{});
+
+
+
+
+
