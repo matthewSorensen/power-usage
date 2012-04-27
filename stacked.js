@@ -43,9 +43,9 @@ function buildChart(selector,file,dim){
 	    .classed("box",true)
 	    .attr("x", function(d) { return scale.country(d.x); })
 	    .attr("y",function(d){
-		return dim.height - (dim.margin + scale.energy(d.y0) + scale.energy(d.y));
+		return dim.height - (dim.margin + scale.energy['all'](d.y0) + scale.energy['all'](d.y));
 	    })
-	    .attr("height", function(d){return scale.energy(d.y);})
+	    .attr("height", function(d){return scale.energy['all'](d.y);})
 	    .attr("width", scale.country.rangeBand()),
 	
 	label = svg.selectAll("text")
@@ -59,7 +59,7 @@ function buildChart(selector,file,dim){
 
 	newScale = d3.scale.linear()
 	    .domain([0,data.max])
-	    .range([dim.height-dim.margin,dim.margin+dim.button])
+	    .range([dim.height-dim.margin,dim.margin+dim.button]),
 
 	axis = d3.svg.axis()
 	    .scale(newScale)
@@ -78,18 +78,20 @@ function buildChart(selector,file,dim){
 	    .data(data.sectors.concat(["all"]))
 	    .enter()
 	    .append("svg:g")
-	    .classed("button",true),
+	    .classed("button",true)
+	    .style("cursor","hand"),
 	xoffset = dim.margin + 50;
 	
+	button.on("mousedown",animate(scale.energy['all'],dim));
+
 	button.append("svg:rect")
 	    .attr("x",function(d,i){return dim.margin+105*i})
 	    .attr("y",0.5*dim.margin)
 	    .attr("width",100)
 	    .attr("height",dim.button)
 	    .style("stroke", function(_,i){return  d3.rgb(scale.sector(i)).darker();})
-	    .attr("fill",function(_,i){return scale.sector(i);})
-	    .on("mousedown",animate(scale.energy,dim));
-	
+	    .attr("fill",function(_,i){return scale.sector(i);});
+	    
 	button.append("svg:text")
 	    .attr("x", function(_,i){
 		return xoffset + 105*i;
@@ -161,16 +163,24 @@ function simplifyData(data){
     var countries = d3.keys(data);
     // Extract the maximum power use of any country, and a set of unique sectors of usage/consumption:
     var sectors = {},
-    max = d3.max(d3.values(data).map(function(country){
-	d3.keys(country).map(function(sect){
-	    sectors[sect] = 0;
-	});	
-	return d3.sum(d3.values(country));
-    }));
+    max = {"all": 
+	   d3.max(d3.values(data).map(function(country){
+	       d3.keys(country).map(function(sect){
+		   sectors[sect] = 0;
+	       });	
+	       return d3.sum(d3.values(country));
+	   }))};
+
+    sectors = d3.keys(sectors);
+
+    sectors.map(function(sel){
+	max[sel] = d3.max(d3.values(data).map(function(d){return d[sel]}));
+    });
+
     return {
 	countries: countries,
 	max: max,
-	sectors: d3.keys(sectors),
+	sectors: sectors,
 	bars: data
     };}
 
@@ -181,13 +191,15 @@ function transposeToLayout(data){
 	});}));}
 
 function scales(dim,data,layout){
+    var energy = {};
+    d3.keys(data.max).map(function(sector){
+	energy[sector] = d3.scale.linear().domain([0,data.max[sector]]).range([0,dim.chartHeight]);
+    });
     return {
 	country:  d3.scale.ordinal()
 	    .rangeBands([0, dim.chartWidth],0.1)
 	    .domain(layout[0].map(function(d) { return d.x; })),
-	energy: d3.scale.linear()
-	    .domain([0,data.max])
-	    .range([0,dim.chartHeight]),
+	energy: energy,
 	// This is slightly poor - we need to match the colorbrewer's size to sector length.
 	sector: d3.scale.ordinal().domain(data.sectors).range(colorbrewer.Blues[9])
     };}
