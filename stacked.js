@@ -75,11 +75,13 @@ function buildChart(selector,file,dim){
 	    .call(axis);
 
 	var button = svg.selectAll("g.button")
-	    .data(data.sectors).enter(),
+	    .data(data.sectors.concat(["all"]))
+	    .enter()
+	    .append("svg:g")
+	    .classed("button",true),
 	xoffset = dim.margin + 50;
 	
 	button.append("svg:rect")
-	    .attr("class","button")
 	    .attr("x",function(d,i){return dim.margin+105*i})
 	    .attr("y",0.5*dim.margin)
 	    .attr("width",100)
@@ -100,14 +102,21 @@ function buildChart(selector,file,dim){
     });
 }
 
-// figure out how to select the parent element. Then...?
-// Give them a class...?... that allows computation of two conflicting selectors?
-// How do we save old things?
+// * rescale the axis (hard - build a second set of scales for each...?)
 function animate(scale,dim){
     return function(){
 	var type = "";
 	d3.select(this).each(function(d,_){type = d});
 	
+	if (type == "all") return unanimate();
+
+	d3.selectAll(".button")
+	    .transition()
+	    .duration(750)
+	    .style("opacity",function(d,_){
+		return (d==type || d=="all")? 1 : 0.25;
+	    });
+
 	d3.selectAll(".box")
 	    .transition()
 	    .duration(750)
@@ -123,6 +132,10 @@ function unanimate(){
 	.transition()
 	.duration(500)
 	.attr("transform","");
+    d3.selectAll(".button")
+	.transition()
+	.duration(500)
+	.style("opacity",1);
 }
 
 
