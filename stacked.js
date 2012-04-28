@@ -2,7 +2,6 @@ function id(x){return x;}
 function translate(x,y){
     return "translate(" + x + "," + y + ")";
 }
-
 function contrast(c,f){
     var hsl = d3.hsl(c);
     return hsl.l < 0.5? hsl.brighter(f): hsl.darker(f);
@@ -19,7 +18,7 @@ function multibar(){
 
     chart.size = function(attr,val){
 	switch(arguments.length){
-	case 2: sizes[attr] = val;
+	case 2: sizes[attr] = val; break;
 	case 1: return sizes[attr];
 	}
 	return chart;
@@ -153,7 +152,6 @@ function multibar(){
 	(data && (onData(data)||true)) || d3.json(source,onData);
 	return chart;
     }
-
     return chart;
 }
 /* Calculate various dimensions and data indexes/totals that we'll need */
@@ -203,18 +201,11 @@ function buildScales(sizes,data,layout){
 	sector: d3.scale.ordinal().domain(data.sectors).range(colorbrewer.Blues[9])
     };}
 
-multibar().insert_svg("body").data({ 
+multibar().size("width",960).insert_svg("body").data({ 
     "title" : "Electricty Production",
     "units" : "TWhr",
-    "data" : {
-	"USA": {"wind": 400, "hydro": 23, "nuclear": 231, "coal": 21},
-	"Morocco": {"wind": 40, "hydro": 23, "nuclear": 1, "coal": 2},
-	"China": {"wind": 4100, "hydro": 213, "nuclear": 231, "coal": 12},
-	"Peru": {"hydro":1000},
-	"USSR": {"nuclear":1250,"coal":1250},
-	"Canukistan": {"maple syrup":500},
-	"Oregon": {"coal":250}
-    },
+    "data" : 
+{"2007":{"Natural Gas":313785,"Other":727,"Renwables":8953,"Coal":1490985,"Nuclear":427555,"Petroleum":40720,"Hydro":226734},"2006":{"Natural Gas":282088,"Other":730,"Renwables":6588,"Coal":1471421,"Nuclear":425341,"Petroleum":40903,"Hydro":261864},"2005":{"Natural Gas":238204,"Other":653,"Renwables":4945,"Coal":1484855,"Nuclear":436296,"Petroleum":69722,"Hydro":245553},"2004":{"Natural Gas":199662,"Other":841,"Renwables":3692,"Coal":1513641,"Nuclear":475682,"Petroleum":73694,"Hydro":245546},"2003":{"Natural Gas":186967,"Other":762,"Renwables":3421,"Coal":1500281,"Nuclear":458829,"Petroleum":69930,"Hydro":249622},"2002":{"Natural Gas":229639,"Other":686,"Renwables":3089,"Coal":1514670,"Nuclear":507380,"Petroleum":59124,"Hydro":242302},"2001":{"Natural Gas":264434,"Other":486,"Renwables":1666,"Coal":1560146,"Nuclear":534207,"Petroleum":78908,"Hydro":197804},"2000":{"Natural Gas":290715,"Other":0,"Renwables":2241,"Coal":1696619,"Nuclear":705433,"Petroleum":72180,"Hydro":253155},"1998":{"Natural Gas":309222,"Other":0,"Renwables":7206,"Coal":1807480,"Nuclear":673702,"Petroleum":110158,"Hydro":308844},"1999":{"Natural Gas":296381,"Other":0,"Renwables":3716,"Coal":1767679,"Nuclear":725036,"Petroleum":86929,"Hydro":299914},"2009":{"Natural Gas":349166,"Other":579,"Renwables":14617,"Coal":1322092,"Nuclear":417275,"Petroleum":25217,"Hydro":247198},"2008":{"Natural Gas":320190,"Other":591,"Renwables":11308,"Coal":1466395,"Nuclear":424256,"Petroleum":28124,"Hydro":229645}},
     "sources":{
 	"USA": "http://en.wikipedia.org/wiki/Electricity_generation",
 	"Morocco":"http://en.wikipedia.org/wiki/Electricity_generation",
