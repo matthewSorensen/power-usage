@@ -33,7 +33,7 @@ function buildChart(selector,file,dim){
 	sector = svg.selectAll("g.sector")
 	    .data(sectors)
 	    .enter().append("svg:g")
-	    .attr("class", "sector")
+	    .classed("sector",true)
 	    .style("stroke", function(_,i){return  d3.rgb(scale.sector(i)).darker();})
 	    .style("fill", function(d, i) { return scale.sector(i); }),
 	
@@ -44,44 +44,42 @@ function buildChart(selector,file,dim){
 	    .attr("x", function(d) { return scale.country(d.x); })
 	    .attr("width", scale.country.rangeBand()),
 	
-	label = svg.selectAll("text")
-	    .data(scale.country.domain())
-	    .enter().append("svg:text")
-	    .attr("x", function(d) { return scale.country(d) + scale.country.rangeBand() / 2; })
-	    .attr("y", dim.height- .75*dim.margin)
-	    .attr("text-anchor", "middle")
-	    .attr("dy", ".71em")
-	    .text(function(d){return d;}),
-
-	newScale = d3.scale.linear().range([dim.height - dim.margin, dim.margin+dim.button]),
-
 	axis = d3.svg.axis()
-	    .scale(newScale)
+	    .scale(d3.scale.linear().range([dim.height - dim.margin, dim.margin+dim.button]))
 	    .ticks(5)
 	    .orient("right")
 	    .tickFormat(function(n){
 		return d3.format(" e")(n) + ' ' + dat.units;
-	    });
+	    }),
 
-	svg.append("g")
-	    .attr("transform",translate(dim.width - dim.right - 1.75*dim.margin,0))
-	    .attr("class","axis")
-	    .call(axis);
-
-	redraw(dim,scale.energy,axis,"all");
-	
-	var button = svg.selectAll("g.button")
+	button = svg.selectAll("g.button")
 	    .data(data.sectors.concat(["all"]))
 	    .enter()
 	    .append("svg:g")
 	    .classed("button",true)
 	    .style("cursor","hand"),
 	xoffset = dim.margin + 50;
+
+	svg.selectAll("text")
+	    .data(scale.country.domain())
+	    .enter().append("svg:text")
+	    .attr("x", function(d) { return scale.country(d) + scale.country.rangeBand() / 2; })
+	    .attr("y", dim.height- .75*dim.margin)
+	    .attr("text-anchor", "middle")
+	    .attr("dy", ".71em")
+	    .text(id);
+	
+	svg.append("g")
+	    .attr("transform",translate(dim.width - dim.right - 1.75*dim.margin,0))
+	    .classed("axis",true)
+	    .call(axis);
+
+	redraw(dim,scale.energy,axis,"all");
 	
 	button.on("mousedown",function(){
-	    var type = "all";
-	    d3.select(this).each(function(d,_){type = d});
-	    redraw(dim,scale.energy,axis,type);
+	    d3.select(this).each(function(type){
+		redraw(dim,scale.energy,axis,type);
+	    });
 	});
 
 	button.append("svg:rect")
@@ -100,41 +98,34 @@ function buildChart(selector,file,dim){
 	    .attr("text-anchor", "middle")
 	    .attr("dy", 0.5*dim.button+2.5)
 	    .style("fill",function(_,i){return contrast(scale.sector(i),3);})
-	    .text(function(d){return d;});
+	    .text(id);
     });
 }
 
+function id(x){return x;}
+
 function redraw(dim,scale,axis,type){
     scale = scale[type];
-    
     d3.selectAll(".button")
 	.transition()
 	.duration(750)
-	.style("opacity",function(d,_){
-	    return (d==type || d=="all")? 1 : (type=="all" ? 1:0.25);
+	.style("opacity",function(button){
+	    if(button == "all") return 1;
+	    return (button==type || type=="all")? 1:0.25;
 	});
     d3.selectAll(".box")
-	.transition()
-	.duration(750)
+	.transition().duration(750)
 	.attr("y",function(d){
-	    if(type == "all"){
-		return dim.height - (dim.margin + scale(d.y0) + scale(d.y))
-	    }else if(d.sector == type){
-		// If this is of the correct type
-		return dim.height - dim.margin - scale(d.y);
-	    }else{
-		return dim.height * 2;
+	    switch(type){
+	    case "all":    return  dim.height - (dim.margin + scale(d.y0) + scale(d.y));
+	    case d.sector: return dim.height - dim.margin - scale(d.y);
+	    default:       return dim.height *2;		
 	    }
-	})
-	.attr("height", function(d){
+	}).attr("height", function(d){
 	    return (type == "all" || d.sector == type)? scale(d.y):0;
 	});
-
     axis.scale(axis.scale().domain(scale.domain()));
-    
-    d3.select(".axis")
-	.transition()
-	.call(axis);
+    d3.select(".axis").transition().call(axis);
 }
 
 function defaultDim(dim){
@@ -205,7 +196,7 @@ function translate(x,y){
 
 function contrast(c,f){
     var hsl = d3.hsl(c);
-    return (hsl.l < 0.5)? (hsl.brighter(f)): (hsl.darker(f));
+    return hsl.l < 0.5? hsl.brighter(f): hsl.darker(f);
 }
 
 
