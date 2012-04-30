@@ -19,7 +19,17 @@ function labelsFit(s){
     return s.rangeBand() > max;
 }
 
-var delay = 500;
+function labelMod(s){
+
+    var max = d3.max(s.domain().map(function(d){
+	return d.length * 10;
+    })),
+    band = s.rangeBand();
+
+    return (max > band) ? Math.ceil(max/band) : 1;
+}
+
+var redrawDelay = 500;
 
 function multibar(){
     var sizes = {button: 15, right: 50, margin: 20}, source = '';
@@ -54,11 +64,16 @@ function multibar(){
 		.orient("right")
 		.tickFormat(function(n){
 		    return d3.format(" e")(n) + ' ' + data.units;
-		});
-	    if( labelsFit(scales.country))
-		target.selectAll("text")
+		}),
+	    mod = labelMod(scales.country);
+	   
+	    target.selectAll("text")
 		.data(scales.country.domain())
-		.enter().append("svg:text")
+		.enter()
+		.append("svg:text")
+		.filter(function(d,i){
+		    return !(i % mod);
+		})
 		.attr("x", centerInBand(scales.country))
 		.attr("y", sizes.height- .75*sizes.margin)
 		.attr("text-anchor", "middle")
@@ -113,7 +128,7 @@ function multibar(){
 	    }
 	    draw('all');
 	    // This is an ugly hack, but there's some weird data-aliasing bug that's really evil. So just redraw...
-	    setTimeout(function(){draw('all');},delay += 100);
+	    setTimeout(function(){draw('all');},redrawDelay += 100);
 	    
 	    button.on("mousedown",draw);
 	}
