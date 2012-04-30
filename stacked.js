@@ -3,6 +3,8 @@ function translate(x,y){
     return "translate(" + x + "," + y + ")";
 }
 function contrast(c){
+    // Better contrast...
+    
     var hsl = d3.hsl(c);
     return hsl.l < 0.5? hsl.brighter(2): hsl.darker(3);
 }
@@ -20,7 +22,6 @@ function labelsFit(s){
 }
 
 function labelMod(s){
-
     var max = d3.max(s.domain().map(function(d){
 	return d.length * 10;
     })),
@@ -37,7 +38,7 @@ function multibar(){
 	function onData(data){
 	    sizes = completeSizes(sizes,target);
 	    var layout = transpose(data),
-	        scales = buildScales(sizes,data,layout);
+	        scales = new Scales(sizes,data,layout);
 
 	    var sector = target.selectAll("g.sector")
 		.data(layout)
@@ -61,10 +62,7 @@ function multibar(){
 	    axis = d3.svg.axis()
 		.scale(d3.scale.linear().range([sizes.height - sizes.margin, sizes.margin+sizes.button]))
 		.ticks(5)
-		.orient("right")
-		.tickFormat(function(n){
-		    return d3.format(" e")(n) + ' ' + data.units;
-		}),
+		.orient("right"),
 	    mod = labelMod(scales.country);
 	   
 	    target.selectAll("text")
@@ -102,6 +100,7 @@ function multibar(){
 		.text(id);
 
 	    function draw (type){	
+
 		scale = scales.energy[type];
 		target.selectAll(".button")
 		    .transition()
@@ -123,12 +122,17 @@ function multibar(){
 			return (type == "all" || d.sector == type)? scale(d.y):0;
 		    });
 		
+
+		axis.tickFormat(function(n){
+		    return d3.format(" e")(n) + ' ' + data.units;
+		});
+
 		axis.scale(axis.scale().domain(scale.domain()));
 		target.selectAll(".axis").transition().call(axis);
 	    }
 	    draw('all');
 	    // This is an ugly hack, but there's some weird data-aliasing bug that's really evil. So just redraw...
-	    setTimeout(function(){draw('all');},redrawDelay += 100);
+	    // setTimeout(function(){draw('all');},redrawDelay += 100);
 	    
 	    button.on("mousedown",draw);
 	}
@@ -158,15 +162,15 @@ function completeData(data){
     data.countries = d3.keys(perCountry);
     // First iterate throught every country and compute their total power use
     // At the same time, this finds all sectors and puts them in sectors
-    max = {"all":
-	   d3.max(d3.values(perCountry).map(function(country){
-	       d3.keys(country).map(function(sect){
-		   sectors[sect] = 0;
-	       });	
-	       return d3.sum(d3.values(country));
-	   }))};
+    max = new Object();
+    max.all =  d3.max(d3.values(perCountry).map(function(country){
+	d3.keys(country).map(function(sect){
+	    sectors[sect] = 0;
+	});	
+	return d3.sum(d3.values(country));
+    }));
+
     data.sectors = d3.keys(sectors);
-    
     // Then go throught all the sectors and find the max for each sector:
     data.sectors.map(function(sec){
 	max[sec] = d3.max(d3.values(perCountry).map(function(d){return d[sec]}));
@@ -183,21 +187,20 @@ function transpose(data){
 	return data.countries.map(function(country){
 	    return {x: country, y: data.data[country][type] || 0, sector:type};
 	});}));}
+
 /* Generate all of the scales we'll need - for x (country), y(power - for each sector and total), and color */
-function buildScales(sizes,data,layout){
-    var energy = {};
+function Scales(sizes,data,layout){
+    var energy = new Object();
     d3.keys(data.max).map(function(sector){
 	energy[sector] = d3.scale.linear().domain([0,data.max[sector]]).range([0,sizes.chartHeight]);
     });
-    return {
-	country:  d3.scale.ordinal()
-	    .rangeBands([0, sizes.chartWidth],0.1)
-	    .domain(data.countries),
-	energy: energy,
-	// This is slightly poor - we need to match the colorbrewer's size to sector length.
-	sector: d3.scale.ordinal().domain(data.sectors).range(colorbrewer.Blues[9]),
-	// Buttons!
-	button: d3.scale.ordinal()
-	    .domain(data.sectors)
-	    .rangeBands([sizes.margin,sizes.width-sizes.margin],0.05)
-    };}
+    this.energy = energy;
+    this.country = d3.scale.ordinal()
+	.rangeBands([0, sizes.chartWidth],0.1)
+	.domain(data.countries);
+    this.sector = d3.scale.ordinal().domain(data.sectors).range(colorbrewer.Blues[9]);
+    this.button = d3.scale.ordinal()
+	.domain(data.sectors)
+	.rangeBands([sizes.margin,sizes.width-sizes.margin],0.05);
+}
+
