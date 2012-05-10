@@ -56,7 +56,10 @@ function Context(img,axis,data,sizes,scales){
 	axis.scale(axis.scale().domain(scale.domain()));
 	img.selectAll(".axis").transition().call(axis);
 
+	img.transition().duration(duration).attr("transform","");
+
 	duration = 500;
+	
 	return redraw;
     }
     
@@ -70,12 +73,15 @@ var redrawDelay = 0;
  
 function multibar(){
     var sizes = {button: 15, right: 50, margin: 20}, data = {}, callback = null;
-    function chart(target){
-	data = completeData(data);
+    function chart(img){
+	// Build a group to hold everything in:
+	var target = img.append("svg:g").classed("stacked-bars",true);
 
-	sizes = completeSizes(sizes,target);
+	data = completeData(data);
+	sizes = completeSizes(sizes,img);
 	var layout = transpose(data),
 	scales = new Scales(sizes,data,layout);	
+
 	var sector = target.selectAll("g.sector")
 	    .data(layout)
 	    .enter().append("svg:g")
@@ -101,6 +107,7 @@ function multibar(){
 	    .orient("right"),
 	mod = labelMod(scales.country);
 	
+
 	target.selectAll("text")
 	    .data(scales.country.domain())
 	    .enter()
@@ -139,6 +146,10 @@ function multibar(){
 	// This is an ugly hack, but there's some weird data-aliasing bug that's really evil. So just redraw...
 	setTimeout(con,redrawDelay += 100);
 	button.on("mousedown",con);
+	rect.on('mousedown',function(bar){
+	    target.transition().duration(500).attr("transform",translate(sizes.width,0));
+	    if(callback) callback(bar.x,img,con);
+	});
 	
     }
     // Expose a modicum of configurability.
