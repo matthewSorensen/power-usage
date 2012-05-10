@@ -209,9 +209,3 @@ function Scales(sizes,data,layout){
 	.domain(data.sectors)
 	.rangeBands([sizes.margin,sizes.width-sizes.margin],0.05);
 }
-
-d3.select("body")
-    .append("svg:svg")
-    .attr("width",960)
-    .attr("height",500)
-    .call(multibar().data(data));

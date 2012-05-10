@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>$title$</title>
+    <meta name="description" content="$description$">
+    <meta name="author" content="$author$">
+    <style type="text/css">
+      body {
+      font: 10px san-serif;
+
+      }
+
+
+
+
+      svg {
+      width: 960px;
+      height: 500px;
+      border: solid 1px #ccc;
+      font: 10px sans-serif;
+      shape-rendering: crispEdges;
+      }
+
+
+      .axis line, .axis path {
+      fill: none;
+      stroke: #000;
+      }
+
+      .chart rect {
+      stroke: white;
+      fill: steelblue;
+
+      font: 10px sans-serif;
+
+      }
+    </style>
+  </head>
+  <body>
+    <script src="d3.js" type="text/javascript"></script>
+    <script src="colorbrewer.js" type="text/javascript"></script>
+    <script src="energyData.js" type="text/javascript"></script>
+    <script src="stacked.js" type="text/javascript"></script>
+    <script src="main.js" type="text/javascript"></script>    
+    <div id="allcountries"></div>
+    <div id="smallcountries"></div>
+  </body>
+</html>
